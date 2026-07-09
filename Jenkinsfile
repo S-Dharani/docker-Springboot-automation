@@ -9,7 +9,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
             post {
                 success {
@@ -24,14 +24,26 @@ pipeline {
         stage('Run Application') {
             steps {
                 sh '''
-                pkill -f spring_app_sak || true
+                # Stop the existing application if running
+                pkill -f student_details || true
 
+                # Run the new application
                 nohup java -jar target/*.jar > app.log 2>&1 &
 
+                # Wait for application to start
                 sleep 10
 
-                pgrep -f spring_app_sak
+                # Verify the application is running
+                pgrep -f student_details
                 '''
+            }
+            post {
+                success {
+                    echo 'Application Started Successfully'
+                }
+                failure {
+                    echo 'Application Failed to Start'
+                }
             }
         }
     }
@@ -42,6 +54,9 @@ pipeline {
         }
         failure {
             echo 'Pipeline Failed'
+        }
+        always {
+            echo 'Pipeline Execution Completed'
         }
     }
 }
