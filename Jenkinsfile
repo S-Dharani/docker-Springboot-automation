@@ -40,11 +40,17 @@ pipeline {
               steps {
        sh '''
         cd /var/lib/jenkins/workspace/app
+
         pkill -f student_details || true
-        chmod +x target/student_details-0.0.1-SNAPSHOT.jar
-        nohup java -jar target/student_details-0.0.1-SNAPSHOT.jar > target/app.log 2>&1 &
-        sleep 20
-        ps -ef | grep student_details | grep -v grep || true
+
+        export BUILD_ID=dontKillMe
+        export JENKINS_NODE_COOKIE=dontKillMe
+
+        nohup java -jar target/student_details-0.0.1-SNAPSHOT.jar > target/app.log 2>&1 < /dev/null &
+
+        sleep 15
+
+        ps -ef | grep student_details | grep -v grep
         '''
     }
         }
