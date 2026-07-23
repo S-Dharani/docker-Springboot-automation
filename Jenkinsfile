@@ -1,78 +1,61 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['DEPLOY', 'REMOVE'],
+            description: 'Choose whether to deploy or remove containers'
+        )
+    }
+
     tools {
         maven 'maven'
     }
 
+    environment {
+        APP_NAME = "springboot-app"
+    }
+
     stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
+        stage('Build JAR') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
             }
-        }
-
-        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
-            post {
-                success {
-                    echo 'Build Success'
-                }
-                failure {
-                    echo 'Build Failed'
-                }
+        }
+
+        stage('Deploy Application') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+            steps {
+                sh 'docker compose up --build -d'
             }
         }
 
-        stage('Stop Old Application') {
-            steps {
-                sh '''
-                pkill -f student_details || true
-                sleep 5
-                '''
+        stage('Remove Application') {
+            when {
+                expression { params.ACTION == 'REMOVE' }
             }
-        }
-
-        stage('Run Application') {
-              steps {
-       sh '''
-        cd /var/lib/jenkins/workspace/app
-
-        pkill -f student_details || true
-
-        export BUILD_ID=dontKillMe
-        export JENKINS_NODE_COOKIE=dontKillMe
-
-        nohup java -jar target/student_details-0.0.1-SNAPSHOT.jar > target/app.log 2>&1 < /dev/null &
-
-        sleep 15
-
-        ps -ef | grep student_details | grep -v grep
-        '''
-    }
-        }
-
-        stage('Verify Application') {
             steps {
-                sh '''
-                ps -ef | grep student_details | grep -v grep
-                '''
+                sh 'docker compose down'
+                sh 'docker image prune -af'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline Success'
+            echo 'Pipeline executed successfully.'
         }
         failure {
-            echo 'Pipeline Failed'
+            echo 'Pipeline execution failed.'
         }
         always {
-            echo 'Pipeline Execution Completed'
+            echo 'Pipeline completed.'
         }
     }
 }
