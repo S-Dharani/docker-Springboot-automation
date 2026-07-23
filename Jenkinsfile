@@ -38,7 +38,17 @@ pipeline {
                 sh 'docker compose build'
             }
         }
-
+        stage('Push Docker Image') {
+           when {
+                 expression { params.ACTION == 'DEPLOY' }
+           }
+           steps {
+              sh '''
+                docker tag application-springboot-app dharani1001/student-details:latest
+            docker push dharani1001/student-details:latest
+             '''
+           }
+        }
         stage('Deploy Application') {
             when {
                 expression { params.ACTION == 'DEPLOY' }
