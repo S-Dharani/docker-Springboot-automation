@@ -5,7 +5,7 @@ pipeline {
         choice(
             name: 'ACTION',
             choices: ['DEPLOY', 'REMOVE'],
-            description: 'Choose whether to deploy or remove containers'
+            description: 'Choose whether to deploy or remove the application'
         )
     }
 
@@ -48,7 +48,25 @@ pipeline {
                 expression { params.ACTION == 'DEPLOY' }
             }
             steps {
-                sh 'docker compose up -d'
+                sh '''
+                    docker compose down || true
+                    docker compose up -d
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+            steps {
+                sh '''
+                    echo "Running Containers:"
+                    docker ps
+
+                    echo "Docker Compose Status:"
+                    docker compose ps
+                '''
             }
         }
 
@@ -58,8 +76,13 @@ pipeline {
             }
             steps {
                 sh '''
-                    docker compose down
-                    docker image prune -af
+                    docker compose down --remove-orphans || true
+
+                    docker rmi application-springboot-app || true
+
+                    docker image prune -f || true
+
+                    echo "Application removed successfully."
                 '''
             }
         }
@@ -69,9 +92,11 @@ pipeline {
         success {
             echo 'Pipeline executed successfully.'
         }
+
         failure {
             echo 'Pipeline execution failed.'
         }
+
         always {
             echo 'Pipeline completed.'
         }
