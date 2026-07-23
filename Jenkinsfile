@@ -30,35 +30,39 @@ pipeline {
         stage('Stop Old Application') {
             steps {
                 sh '''
-                pkill -f student_details || true
-                sleep 5
+                    pkill -f student_details || true
+                    sleep 5
                 '''
             }
         }
 
         stage('Run Application') {
-              steps {
-       sh '''
-        cd /var/lib/jenkins/workspace/app
+            steps {
+                sh '''
+                    cd "$WORKSPACE"
 
-        pkill -f student_details || true
+                    echo "Current Workspace:"
+                    pwd
+                    ls -l
+                    ls -l target
 
-        export BUILD_ID=dontKillMe
-        export JENKINS_NODE_COOKIE=dontKillMe
+                    export BUILD_ID=dontKillMe
+                    export JENKINS_NODE_COOKIE=dontKillMe
 
-        nohup java -jar target/student_details-0.0.1-SNAPSHOT.jar > target/app.log 2>&1 < /dev/null &
+                    nohup java -jar target/student_details-0.0.1-SNAPSHOT.jar > target/app.log 2>&1 < /dev/null &
 
-        sleep 15
-
-        ps -ef | grep student_details | grep -v grep
-        '''
-    }
+                    sleep 20
+                '''
+            }
         }
 
         stage('Verify Application') {
             steps {
                 sh '''
-                ps -ef | grep student_details | grep -v grep
+                    ps -ef | grep student_details | grep -v grep
+
+                    echo "Application Log:"
+                    tail -20 target/app.log
                 '''
             }
         }
